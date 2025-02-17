@@ -3,30 +3,43 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
   ActivityIndicator,
+  Image,
+  Alert,
+  TouchableOpacity,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-const NEWS_API_URL = "http://127.0.0.1:3000/news";
+const NEWS_API_URL = "http://127.0.0.1:4444/news";
 
 export default function NewsScreen() {
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     fetchNews();
-    const interval = setInterval(fetchNews, 15000); // Fetch news every 15 seconds
-    return () => clearInterval(interval); // Clear interval on component unmount
   }, []);
 
   const fetchNews = async () => {
     try {
       const response = await fetch(NEWS_API_URL);
-      const data = await response.json();
-      setNews(data);
+      const text = await response.text();
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(text, "application/xml");
+      const items = xml.getElementsByTagName("item");
+
+      const newsData = Array.from(items).map((item) => ({
+        title: item.getElementsByTagName("title")[0].textContent,
+        date: item.getElementsByTagName("date")[0].textContent,
+        description: item.getElementsByTagName("description")[0].textContent,
+        image: `http://127.0.0.1:4444/${
+          item.getElementsByTagName("image")[0].textContent
+        }`,
+      }));
+
+      setNews(newsData);
     } catch (error) {
       Alert.alert("Ошибка", "Не удалось загрузить новости");
     } finally {
@@ -34,48 +47,44 @@ export default function NewsScreen() {
     }
   };
 
-  const toggleFavorite = (title) => {
-    setNews(
-      news.map((article) =>
-        article.title === title
-          ? { ...article, favorite: !article.favorite }
-          : article
-      )
+  const handleNextNews = () => {
+    setCurrentIndex((prevIndex) =>
+      prevIndex < news.length - 1 ? prevIndex + 1 : 0
     );
   };
 
-  const renderNewsItem = ({ item }) => (
-    <TouchableOpacity key={item.title} style={styles.newsItem}>
-      <View style={styles.newsContent}>
-        <View style={styles.newsHeader}>
-          <Text style={styles.newsTitle}>{item.title}</Text>
-          <TouchableOpacity onPress={() => toggleFavorite(item.title)}>
-            <Ionicons
-              name={item.favorite ? "star" : "star-outline"}
-              size={24}
-              color="black"
-            />
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.newsDescription}>{item.contentSnippet}</Text>
-        <View style={styles.newsFooter}>
-          <Text style={styles.newsDate}>
-            {new Date(item.pubDate).toLocaleString()}
-          </Text>
-        </View>
+  const handlePrevNews = () => {
+    setCurrentIndex((prevIndex) =>
+      prevIndex > 0 ? prevIndex - 1 : news.length - 1
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#0000ff" />
       </View>
-    </TouchableOpacity>
-  );
+    );
+  }
+
+  const currentNews = news[currentIndex];
 
   return (
     <View style={styles.container}>
-      {loading ? (
-        <ActivityIndicator size="large" color="#0000ff" />
-      ) : (
-        <ScrollView contentContainerStyle={styles.newsContainer}>
-          {news.map((item) => renderNewsItem({ item }))}
-        </ScrollView>
-      )}
+      <View style={styles.newsContainer}>
+        <TouchableOpacity onPress={handlePrevNews} style={styles.arrowButton}>
+          <Ionicons name="chevron-back" size={24} color="black" />
+        </TouchableOpacity>
+        <View style={styles.newsItem}>
+          <Image source={{ uri: currentNews.image }} style={styles.newsImage} />
+          <Text style={styles.newsTitle}>{currentNews.title}</Text>
+          <Text style={styles.newsDescription}>{currentNews.description}</Text>
+          <Text style={styles.newsDate}>{currentNews.date}</Text>
+        </View>
+        <TouchableOpacity onPress={handleNextNews} style={styles.arrowButton}>
+          <Ionicons name="chevron-forward" size={24} color="black" />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -88,41 +97,44 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   newsContainer: {
-    paddingVertical: 20,
+    flexDirection: "row",
     alignItems: "center",
   },
   newsItem: {
-    marginBottom: 20,
     backgroundColor: "#fff",
     borderRadius: 10,
     overflow: "hidden",
-    width: "90%",
-    alignSelf: "center",
-  },
-  newsContent: {
+    width: Dimensions.get("window").width * 0.8,
     padding: 10,
-  },
-  newsHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    alignSelf: "center",
     alignItems: "center",
+    position: "relative",
   },
   newsTitle: {
     fontSize: 20,
     fontWeight: "bold",
-  },
-  newsDescription: {
-    fontSize: 14,
-    color: "#555",
-    marginBottom: 20,
-  },
-  newsFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
+    textAlign: "center",
+    marginVertical: 10,
   },
   newsDate: {
     fontSize: 12,
     color: "#999",
+    position: "absolute",
+    bottom: 10,
+    right: 10,
+  },
+  newsImage: {
+    width: "100%",
+    height: 150,
+    borderRadius: 10,
+  },
+  newsDescription: {
+    fontSize: 14,
+    color: "#555",
+    textAlign: "center",
+    marginVertical: 10,
+  },
+  arrowButton: {
+    padding: 10,
   },
 });

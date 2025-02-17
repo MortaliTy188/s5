@@ -11,7 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import * as Calendar from "expo-calendar";
 
-const EVENTS_API_URL = "http://127.0.0.1:3000/api/v1/events";
+const EVENTS_API_URL = "http://127.0.0.1:4444/events";
 
 export default function EventsScreen() {
   const [events, setEvents] = useState([]);
@@ -19,8 +19,6 @@ export default function EventsScreen() {
 
   useEffect(() => {
     fetchEvents();
-    const interval = setInterval(fetchEvents, 15000); // Fetch events every 15 seconds
-    return () => clearInterval(interval); // Clear interval on component unmount
   }, []);
 
   const fetchEvents = async () => {
@@ -45,10 +43,10 @@ export default function EventsScreen() {
 
       if (defaultCalendar) {
         await Calendar.createEventAsync(defaultCalendar.id, {
-          title: item.name,
-          startDate: new Date(`${item.event_date}T${item.event_time}`),
-          endDate: new Date(`${item.event_date}T${item.event_time}`),
-          notes: item.short_description,
+          title: item.title,
+          startDate: new Date(item.date),
+          endDate: new Date(item.date),
+          notes: item.description,
         });
         Alert.alert("Событие добавлено в календарь");
       }
@@ -58,35 +56,27 @@ export default function EventsScreen() {
   };
 
   const toggleFavorite = (id) => {
-    setEvents(
-      events.map((event) =>
-        event.id === id ? { ...event, favorite: !event.favorite } : event
-      )
-    );
+    setEvents(events.map(event => 
+      event.id === id ? { ...event, favorite: !event.favorite } : event
+    ));
   };
 
   const renderEventItem = ({ item }) => (
-    <TouchableOpacity key={item.id} style={styles.eventItem}>
+    <TouchableOpacity key={item.title} style={styles.eventItem}>
       <View style={styles.eventContent}>
         <View style={styles.eventHeader}>
-          <Text style={styles.eventTitle}>{item.name}</Text>
-          <TouchableOpacity
-            onPress={() => {
-              handleAddToCalendar(item);
-              toggleFavorite(item.id);
-            }}
-          >
-            <Ionicons
-              name={item.favorite ? "star" : "star-outline"}
-              size={24}
-              color="black"
-            />
+          <Text style={styles.eventTitle}>{item.title}</Text>
+          <TouchableOpacity onPress={() => {
+            handleAddToCalendar(item);
+            toggleFavorite(item.title);
+          }}>
+            <Ionicons name={item.favorite ? "star" : "star-outline"} size={24} color="black" />
           </TouchableOpacity>
         </View>
-        <Text style={styles.eventDescription}>{item.short_description}</Text>
+        <Text style={styles.eventDescription}>{item.description}</Text>
         <View style={styles.eventFooter}>
-          <Text style={styles.eventDate}>{item.event_date}</Text>
-          <Text style={styles.eventAuthor}>{item.responsible_persons}</Text>
+          <Text style={styles.eventDate}>{item.date}</Text>
+          <Text style={styles.eventAuthor}>{item.author}</Text>
         </View>
       </View>
     </TouchableOpacity>
