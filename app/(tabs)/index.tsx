@@ -11,6 +11,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
+const { width, height } = Dimensions.get("window");
+
 const NEWS_API_URL = "http://127.0.0.1:4444/news";
 
 export default function NewsScreen() {
@@ -61,7 +63,7 @@ export default function NewsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={styles.loaderContainer}>
         <ActivityIndicator size="large" color="#0000ff" />
       </View>
     );
@@ -95,16 +97,25 @@ const styles = StyleSheet.create({
     backgroundColor: "#DFFFD6",
     justifyContent: "center",
     alignItems: "center",
+    width: width,
+    height: height,
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   newsContainer: {
     flexDirection: "row",
     alignItems: "center",
+    width: width * 0.95,
+    justifyContent: "space-between",
   },
   newsItem: {
     backgroundColor: "#fff",
     borderRadius: 10,
     overflow: "hidden",
-    width: Dimensions.get("window").width * 0.8,
+    width: width * 0.75,
     padding: 10,
     alignSelf: "center",
     alignItems: "center",
@@ -125,7 +136,7 @@ const styles = StyleSheet.create({
   },
   newsImage: {
     width: "100%",
-    height: 150,
+    height: height * 0.25,
     borderRadius: 10,
   },
   newsDescription: {
